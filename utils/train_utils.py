@@ -1,5 +1,5 @@
 from torch.utils.data import SequentialSampler, DataLoader
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 from seqeval.metrics import f1_score, classification_report
 import torch
 import torch.nn.functional as F
