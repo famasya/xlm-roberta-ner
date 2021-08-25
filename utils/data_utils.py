@@ -99,6 +99,69 @@ class NerProcessor:
                 guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
+class PosProcessor:
+    """Processor for the CoNLL-2003 data set."""
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_file(os.path.join(data_dir, "train_pos.txt")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_file(os.path.join(data_dir, "valid_pos.txt")), "valid")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_file(os.path.join(data_dir, "test_pos.txt")), "test")
+
+    def get_labels(self):
+        return ["ADV","CC","DR","FW","IN","JJ","NEG","NN","NNP","NUM","PR","RP","SC","SYM","UH","VB","ADJP","DP","NP","NUMP","VP"]
+
+    def _read_file(self, filename):
+        '''
+        read file
+        '''
+        f = open(filename)
+        data = []
+        sentence = []
+        label = []
+
+        for i, line in enumerate(f, 1):
+            if not line.strip() or len(line) == 0 or line.startswith('-DOCSTART') or line[0] == "\n" or line[0] == '.':
+                if len(sentence) > 0:
+                    data.append((sentence, label))
+                    sentence = []
+                    label = []
+                continue
+
+            splits = line.split()
+            assert len(splits) >= 2, "error on line {}. Found {} splits".format(i, len(splits))
+            word, tag = splits[0], splits[-1]
+            assert tag in self.get_labels(), "unknown tag {} in line {}".format(tag, i)
+            sentence.append(word.strip())
+            label.append(tag.strip())
+
+        if len(sentence) > 0:
+            data.append((sentence, label))
+            sentence = []
+            label = []
+        return data
+
+    def _create_examples(self, lines, set_type):
+        examples = []
+
+        for i, (sentence, label) in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = ' '.join(sentence)
+            text_b = None
+            label = label
+            examples.append(InputExample(
+                guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
 
 def convert_examples_to_features(examples, label_list, max_seq_length, encode_method):
     """Converts a set of examples into XLMR compatible format

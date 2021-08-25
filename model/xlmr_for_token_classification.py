@@ -5,16 +5,20 @@ import torch.nn.functional as F
 
 class XLMRForTokenClassification(nn.Module):
 
-    def __init__(self, pretrained_path, n_labels, hidden_size, dropout_p, label_ignore_idx=0,
+    def __init__(self, pretrained_path, n_labels, n_pos_labels, hidden_size, dropout_p, label_ignore_idx=0,
                 head_init_range=0.04, device='cuda'):
         super().__init__()
 
         self.n_labels = n_labels
+        self.n_pos_labels = n_pos_labels
         
         self.linear_1 = nn.Linear(hidden_size, hidden_size)
+        self.pos_linear_1 = nn.Linear(hidden_size, hidden_size)
         self.classification_head = nn.Linear(hidden_size, n_labels)
+        self.pos_classification_head = nn.Linear(hidden_size, n_pos_labels)
         
         self.label_ignore_idx = label_ignore_idx
+        self.pos_label_ignore_idx = pos_label_ignore_idx
 
         self.xlmr = XLMRModel.from_pretrained(pretrained_path)
         self.model = self.xlmr.model
@@ -24,6 +28,7 @@ class XLMRForTokenClassification(nn.Module):
 
         # initializing classification head
         self.classification_head.weight.data.normal_(mean=0.0, std=head_init_range)
+        self.pos_classification_head.weight.data.normal_(mean=0.0, std=head_init_range)
 
     def forward(self, inputs_ids, labels, labels_mask, valid_mask):
         '''
@@ -40,6 +45,7 @@ class XLMRForTokenClassification(nn.Module):
 
         '''
         transformer_out, _ = self.model(inputs_ids, features_only=True)
+        transformer_out
 
         out_1 = F.relu(self.linear_1(transformer_out))
         out_1 = self.dropout(out_1)

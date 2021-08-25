@@ -19,7 +19,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
 from seqeval.metrics import classification_report
 from model.xlmr_for_token_classification import XLMRForTokenClassification
 from utils.train_utils import add_xlmr_args, evaluate_model
-from utils.data_utils import NerProcessor, create_dataset, convert_examples_to_features
+from utils.data_utils import NerProcessor, PosProcessor, create_dataset, convert_examples_to_features
 
 from tqdm.notebook import tqdm
 from tqdm import trange
@@ -58,16 +58,24 @@ def main():
         os.makedirs(args.output_dir)
 
     processor = NerProcessor()
+    pos_processor = PosProcessor()
     label_list = processor.get_labels()
+    label_pos_list = pos_processor.get_labels()
     num_labels = len(label_list) + 1  # add one for IGNORE label
+    num_pos_labels = len(label_pos_list) + 1
 
     train_examples = None
+    train_examples_pos = None
     num_train_optimization_steps = 0
+    pos_num_train_optimization_steps = 0
 
     if args.do_train:
         train_examples = processor.get_train_examples(args.data_dir)
+        train_examples_pos = pos_processor.get_train_examples(args.data_dir)
         num_train_optimization_steps = int(
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
+        pos_num_train_optimization_steps = int(
+            len(train_examples_pos) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
     
     # preparing model configs
     hidden_size = 768 if 'base' in args.pretrained_path else 1024 # TODO: move this inside model.__init__
@@ -77,6 +85,7 @@ def main():
     # creating model
     model = XLMRForTokenClassification(pretrained_path=args.pretrained_path,
                                        n_labels=num_labels, hidden_size=hidden_size,
+                                       pos_labels=num_pos_labels,
                                        dropout_p=args.dropout, device=device)
 
     model.to(device)
